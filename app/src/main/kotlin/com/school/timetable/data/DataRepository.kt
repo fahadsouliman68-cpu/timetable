@@ -2,12 +2,15 @@ package com.school.timetable.data
 
 import androidx.room.withTransaction
 import com.school.timetable.data.db.AppDatabase
+import com.school.timetable.data.db.DataDao
 import com.school.timetable.data.db.GradeEntity
+import com.school.timetable.data.db.GradeSubjectPlanEntity
 import com.school.timetable.data.db.SectionEntity
 import com.school.timetable.data.db.ShiftEntity
 import com.school.timetable.data.db.SubjectEntity
 import com.school.timetable.data.db.TeacherEntity
 import com.school.timetable.data.db.TeacherSubjectEntity
+import com.school.timetable.data.db.TeachingAssignmentEntity
 
 /** Everything the data screen needs for the active year, loaded in one pass. */
 data class YearData(
@@ -18,12 +21,14 @@ data class YearData(
     val subjects: List<SubjectEntity>,
     val teachers: List<TeacherEntity>,
     val teacherSubjects: List<TeacherSubjectEntity>,
+    val plans: List<GradeSubjectPlanEntity>,
+    val assignments: List<TeachingAssignmentEntity>,
 )
 
 /** Reads and writes school data. Throws on constraint violations; the UI turns them into messages. */
 class DataRepository(private val database: AppDatabase) {
 
-    private val dao get() = database.dataDao()
+    private val dao: DataDao get() = database.dataDao()
 
     /** Returns null when no school year exists yet. */
     suspend fun load(): YearData? {
@@ -37,6 +42,8 @@ class DataRepository(private val database: AppDatabase) {
             subjects = dao.subjects(yearId),
             teachers = dao.teachers(yearId),
             teacherSubjects = dao.teacherSubjects(yearId),
+            plans = dao.plans(yearId),
+            assignments = dao.assignments(yearId),
         )
     }
 
@@ -70,4 +77,25 @@ class DataRepository(private val database: AppDatabase) {
     }
 
     suspend fun deleteTeacher(id: Long) = dao.deleteTeacher(id)
+
+    /** Replaces the weekly plan of one grade. Subjects with zero periods are left out. */
+    suspend fun savePlan(yearId: Long, gradeId: Long, periodsBySubject: Map<Long, Int>) {
+        database.withTransaction {
+            dao.deletePlansOfGrade(yearId, gradeId)
+            val rows = periodsBySubject
+                .filter { it.value > 0 }
+                .map { (subjectId, periods) ->
+                    GradeSubjectPlanEntity(yearId = yearId, gradeId = gradeId, subjectId = subjectId, weeklyPeriods = periods)
+                }
+            if (rows.isNotEmpty()) dao.insertPlans(rows)
+        }
+    }
+
+    /** Replaces the assignments of one section with the given rows. */
+    suspend fun saveAssignments(yearId: Long, sectionId: Long, rows: List<TeachingAssignmentEntity>) {
+        database.withTransaction {
+            dao.deleteAssignmentsOfSection(yearId, sectionId)
+            if (rows.isNotEmpty()) dao.insertAssignments(rows)
+        }
+    }
 }

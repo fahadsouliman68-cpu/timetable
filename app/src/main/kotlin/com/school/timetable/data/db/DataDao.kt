@@ -4,7 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 
-/** Read and write access for grades, sections, subjects and teachers of the active year. */
+/** Read and write access for grades, sections, subjects, teachers, plans and assignments of the active year. */
 @Dao
 interface DataDao {
 
@@ -49,4 +49,22 @@ interface DataDao {
 
     @Query("SELECT ts.* FROM teacher_subjects ts JOIN teachers t ON t.id = ts.teacherId WHERE t.yearId = :yearId")
     suspend fun teacherSubjects(yearId: Long): List<TeacherSubjectEntity>
+
+    @Query("SELECT * FROM grade_subject_plan WHERE yearId = :yearId")
+    suspend fun plans(yearId: Long): List<GradeSubjectPlanEntity>
+
+    @Query("DELETE FROM grade_subject_plan WHERE yearId = :yearId AND gradeId = :gradeId")
+    suspend fun deletePlansOfGrade(yearId: Long, gradeId: Long)
+
+    @Insert
+    suspend fun insertPlans(plans: List<GradeSubjectPlanEntity>)
+
+    @Query("SELECT * FROM teaching_assignments WHERE yearId = :yearId")
+    suspend fun assignments(yearId: Long): List<TeachingAssignmentEntity>
+
+    @Query("DELETE FROM teaching_assignments WHERE yearId = :yearId AND sectionId = :sectionId")
+    suspend fun deleteAssignmentsOfSection(yearId: Long, sectionId: Long)
+
+    @Insert
+    suspend fun insertAssignments(assignments: List<TeachingAssignmentEntity>)
 }

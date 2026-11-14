@@ -1,0 +1,28 @@
+# Runs the pure-Kotlin domain tests on every push. No Android SDK is needed for this job.
+# NOTE: this workflow has NOT been executed yet; it was written in an environment without GitHub access.
+name: domain-tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Kotlin compiler 2.0.21
+        run: |
+          curl -fsSL -o kotlin.zip https://github.com/JetBrains/kotlin/releases/download/v2.0.21/kotlin-compiler-2.0.21.zip
+          unzip -q kotlin.zip -d "$HOME/kotlin"
+          echo "KOTLIN_HOME=$HOME/kotlin/kotlinc" >> "$GITHUB_ENV"
+
+      - name: Compile and run domain tests
+        run: ./scripts/test-domain.sh

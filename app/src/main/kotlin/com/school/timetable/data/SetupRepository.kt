@@ -39,4 +39,7 @@ class SetupRepository(private val database: AppDatabase) {
         }
         return result
     }
+
+    /** Returns the saved school name, or null when no setup exists yet. */
+    suspend fun savedSchoolName(): String? = database.setupDao().schoolName()
 }

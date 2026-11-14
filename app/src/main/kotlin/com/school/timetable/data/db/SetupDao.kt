@@ -32,6 +32,9 @@ interface SetupDao {
     @Query("SELECT * FROM periods WHERE yearId = :yearId ORDER BY shiftId, indexNo")
     suspend fun periodsOf(yearId: Long): List<PeriodEntity>
 
+    @Query("SELECT name FROM schools ORDER BY id LIMIT 1")
+    suspend fun schoolName(): String?
+
     @Query("SELECT COUNT(*) FROM academic_years")
     suspend fun yearCount(): Int
 }

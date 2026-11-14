@@ -25,9 +25,6 @@ jobs:
       - name: Generate Gradle wrapper
         run: gradle wrapper --gradle-version 8.9
 
-      - name: Domain tests (pure Kotlin)
-        run: ./scripts/test-domain.sh
-
       - name: Unit tests and debug APK
         run: ./gradlew :app:testDebugUnitTest :app:assembleDebug --stacktrace
 

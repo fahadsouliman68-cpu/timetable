@@ -66,10 +66,7 @@ fun TimetableScreen(repository: TimetableRepository, onBack: () -> Unit) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("رجوع") }
-            Text("الجدول", style = MaterialTheme.typography.headlineSmall)
-        }
+        ScreenHeader("الجدول", onBack)
 
         Button(
             enabled = !busy,

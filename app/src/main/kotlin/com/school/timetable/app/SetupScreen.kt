@@ -71,7 +71,7 @@ fun SetupScreen(repository: SetupRepository, onSaved: () -> Unit) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("إعداد المدرسة", style = MaterialTheme.typography.headlineSmall)
+        ScreenHeader("إعداد المدرسة")
 
         OutlinedTextField(
             value = schoolName,

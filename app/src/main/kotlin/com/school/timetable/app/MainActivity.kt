@@ -11,7 +11,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -26,23 +30,27 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.school.timetable.data.DataRepository
-import com.school.timetable.data.backup.BackupService
 import com.school.timetable.data.SetupRepository
 import com.school.timetable.data.TimetableRepository
+import com.school.timetable.data.backup.BackupService
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val container = (application as TimetableApp).container
         setContent {
-            MaterialTheme {
+            AppTheme {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                    Surface(modifier = Modifier.fillMaxSize()) {
-                        AppRoot(container.setupRepository, container.dataRepository, container.timetableRepository, container.backupService)
+                    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                        AppRoot(
+                            container.setupRepository,
+                            container.dataRepository,
+                            container.timetableRepository,
+                            container.backupService,
+                        )
                     }
                 }
             }
@@ -94,27 +102,50 @@ private fun HomeScreen(
     onOpenTimetable: () -> Unit,
     onOpenBackup: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        Surface(
+            color = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            shape = RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 28.dp, bottom = 32.dp)) {
+                Text(
+                    text = "جداول المدرسة",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.secondary,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(text = schoolName, style = MaterialTheme.typography.headlineMedium)
+            }
+        }
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            HomeCard("الجدول", "توليد الجداول وعرضها واعتمادها", onOpenTimetable)
+            HomeCard("الصفوف والشعب والمواد والمعلمون", "إدخال البيانات والخطط والإسناد", onOpenData)
+            HomeCard("النسخ الاحتياطي والتقارير", "نسخة احتياطية واستعادة وتصدير PDF", onOpenBackup)
+        }
+    }
+}
+
+@Composable
+private fun HomeCard(title: String, subtitle: String, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
-        Text(
-            text = "مرحباً بك في $schoolName",
-            style = MaterialTheme.typography.headlineSmall,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onOpenData, modifier = Modifier.fillMaxWidth()) {
-            Text("الصفوف والشعب والمواد والمعلمون")
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Button(onClick = onOpenTimetable, modifier = Modifier.fillMaxWidth()) {
-            Text("الجدول")
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Button(onClick = onOpenBackup, modifier = Modifier.fillMaxWidth()) {
-            Text("النسخ الاحتياطي والتقارير")
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(text = title, style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

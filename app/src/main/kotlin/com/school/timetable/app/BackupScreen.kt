@@ -113,10 +113,7 @@ fun BackupScreen(backup: BackupService, timetable: TimetableRepository, onBack: 
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("رجوع") }
-            Text("النسخ الاحتياطي والتقارير", style = MaterialTheme.typography.headlineSmall)
-        }
+        ScreenHeader("النسخ الاحتياطي والتقارير", onBack)
 
         Button(enabled = !busy, onClick = { exportLauncher.launch("timetable-backup.json") }, modifier = Modifier.fillMaxWidth()) {
             Text("تصدير نسخة احتياطية")

@@ -76,10 +76,7 @@ fun DataScreen(repository: DataRepository, onBack: () -> Unit) {
 
     val current = data
     Column(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            TextButton(onClick = onBack) { Text("رجوع") }
-            Text("البيانات", style = MaterialTheme.typography.headlineSmall)
-        }
+        ScreenHeader("البيانات", onBack)
 
         if (current == null) {
             Text("لا توجد سنة دراسية نشطة. احفظ الإعداد أولاً.")

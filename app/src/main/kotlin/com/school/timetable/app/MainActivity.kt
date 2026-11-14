@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.school.timetable.data.DataRepository
+import com.school.timetable.data.backup.BackupService
 import com.school.timetable.data.SetupRepository
 import com.school.timetable.data.TimetableRepository
 
@@ -41,7 +42,7 @@ class MainActivity : ComponentActivity() {
             MaterialTheme {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                     Surface(modifier = Modifier.fillMaxSize()) {
-                        AppRoot(container.setupRepository, container.dataRepository, container.timetableRepository)
+                        AppRoot(container.setupRepository, container.dataRepository, container.timetableRepository, container.backupService)
                     }
                 }
             }
@@ -49,7 +50,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class Screen { HOME, DATA, TIMETABLE }
+private enum class Screen { HOME, DATA, TIMETABLE, BACKUP }
 
 /** Shows setup until a school is saved, then the home screen. Reads the database, so it survives restarts. */
 @Composable
@@ -57,6 +58,7 @@ private fun AppRoot(
     setupRepository: SetupRepository,
     dataRepository: DataRepository,
     timetableRepository: TimetableRepository,
+    backupService: BackupService,
 ) {
     var loaded by remember { mutableStateOf(false) }
     var schoolName by remember { mutableStateOf<String?>(null) }
@@ -75,16 +77,23 @@ private fun AppRoot(
         schoolName == null -> SetupScreen(setupRepository) { reloadCount++ }
         screen == Screen.DATA -> DataScreen(dataRepository) { screen = Screen.HOME }
         screen == Screen.TIMETABLE -> TimetableScreen(timetableRepository) { screen = Screen.HOME }
+        screen == Screen.BACKUP -> BackupScreen(backupService, timetableRepository) { screen = Screen.HOME }
         else -> HomeScreen(
             schoolName = schoolName ?: "",
             onOpenData = { screen = Screen.DATA },
             onOpenTimetable = { screen = Screen.TIMETABLE },
+            onOpenBackup = { screen = Screen.BACKUP },
         )
     }
 }
 
 @Composable
-private fun HomeScreen(schoolName: String, onOpenData: () -> Unit, onOpenTimetable: () -> Unit) {
+private fun HomeScreen(
+    schoolName: String,
+    onOpenData: () -> Unit,
+    onOpenTimetable: () -> Unit,
+    onOpenBackup: () -> Unit,
+) {
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.Center,
@@ -102,6 +111,10 @@ private fun HomeScreen(schoolName: String, onOpenData: () -> Unit, onOpenTimetab
         Spacer(modifier = Modifier.height(8.dp))
         Button(onClick = onOpenTimetable, modifier = Modifier.fillMaxWidth()) {
             Text("الجدول")
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(onClick = onOpenBackup, modifier = Modifier.fillMaxWidth()) {
+            Text("النسخ الاحتياطي والتقارير")
         }
     }
 }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
@@ -30,6 +31,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.school.timetable.data.DataRepository
 import com.school.timetable.data.SetupRepository
+import com.school.timetable.data.TimetableRepository
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,7 +41,7 @@ class MainActivity : ComponentActivity() {
             MaterialTheme {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                     Surface(modifier = Modifier.fillMaxSize()) {
-                        AppRoot(container.setupRepository, container.dataRepository)
+                        AppRoot(container.setupRepository, container.dataRepository, container.timetableRepository)
                     }
                 }
             }
@@ -47,11 +49,15 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class Screen { HOME, DATA }
+private enum class Screen { HOME, DATA, TIMETABLE }
 
 /** Shows setup until a school is saved, then the home screen. Reads the database, so it survives restarts. */
 @Composable
-private fun AppRoot(setupRepository: SetupRepository, dataRepository: DataRepository) {
+private fun AppRoot(
+    setupRepository: SetupRepository,
+    dataRepository: DataRepository,
+    timetableRepository: TimetableRepository,
+) {
     var loaded by remember { mutableStateOf(false) }
     var schoolName by remember { mutableStateOf<String?>(null) }
     var reloadCount by remember { mutableStateOf(0) }
@@ -68,12 +74,17 @@ private fun AppRoot(setupRepository: SetupRepository, dataRepository: DataReposi
         }
         schoolName == null -> SetupScreen(setupRepository) { reloadCount++ }
         screen == Screen.DATA -> DataScreen(dataRepository) { screen = Screen.HOME }
-        else -> HomeScreen(schoolName ?: "") { screen = Screen.DATA }
+        screen == Screen.TIMETABLE -> TimetableScreen(timetableRepository) { screen = Screen.HOME }
+        else -> HomeScreen(
+            schoolName = schoolName ?: "",
+            onOpenData = { screen = Screen.DATA },
+            onOpenTimetable = { screen = Screen.TIMETABLE },
+        )
     }
 }
 
 @Composable
-private fun HomeScreen(schoolName: String, onOpenData: () -> Unit) {
+private fun HomeScreen(schoolName: String, onOpenData: () -> Unit, onOpenTimetable: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.Center,
@@ -85,8 +96,12 @@ private fun HomeScreen(schoolName: String, onOpenData: () -> Unit) {
             textAlign = TextAlign.Center,
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onOpenData) {
+        Button(onClick = onOpenData, modifier = Modifier.fillMaxWidth()) {
             Text("الصفوف والشعب والمواد والمعلمون")
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(onClick = onOpenTimetable, modifier = Modifier.fillMaxWidth()) {
+            Text("الجدول")
         }
     }
 }

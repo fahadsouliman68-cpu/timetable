@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.school.timetable.data.DataRepository
 import com.school.timetable.data.SetupRepository
+import com.school.timetable.data.TimetableRepository
 import com.school.timetable.data.db.AppDatabase
 
 /** Manual dependency wiring. Hilt is deferred until the graph grows beyond a few repositories. */
@@ -16,4 +17,5 @@ class AppContainer(context: Context) {
 
     val setupRepository: SetupRepository = SetupRepository(database)
     val dataRepository: DataRepository = DataRepository(database)
+    val timetableRepository: TimetableRepository = TimetableRepository(database, dataRepository)
 }

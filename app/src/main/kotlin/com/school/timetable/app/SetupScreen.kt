@@ -2,6 +2,7 @@ package com.school.timetable.app
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -11,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -18,6 +20,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -38,17 +41,25 @@ internal fun parseClockMinutes(text: String): Int? {
     return hours * 60 + minutes
 }
 
-/** Setup wizard, phase 1: one morning shift. Validation messages come from the domain layer. */
+/** Setup wizard: school info, a morning shift, and an optional evening shift. Validation messages come from the domain layer. */
 @Composable
 fun SetupScreen(repository: SetupRepository, onSaved: () -> Unit) {
     var schoolName by remember { mutableStateOf("") }
     var yearLabel by remember { mutableStateOf("") }
     var principal by remember { mutableStateOf("") }
     var activeDays by remember { mutableStateOf("5") }
+
     var firstStart by remember { mutableStateOf("07:30") }
     var periodCount by remember { mutableStateOf("7") }
     var periodLength by remember { mutableStateOf("45") }
     var gap by remember { mutableStateOf("5") }
+
+    var hasEvening by remember { mutableStateOf(false) }
+    var eveningStart by remember { mutableStateOf("13:00") }
+    var eveningCount by remember { mutableStateOf("6") }
+    var eveningLength by remember { mutableStateOf("45") }
+    var eveningGap by remember { mutableStateOf("5") }
+
     var errors by remember { mutableStateOf<List<String>>(emptyList()) }
     var saving by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -91,37 +102,45 @@ fun SetupScreen(repository: SetupRepository, onSaved: () -> Unit) {
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth(),
         )
+
+        Text("الوردية الصباحية", style = MaterialTheme.typography.titleMedium)
         OutlinedTextField(
             value = firstStart,
             onValueChange = { firstStart = it },
-            label = { Text("بداية الدوام الصباحي (HH:MM)") },
+            label = { Text("بداية الدوام (HH:MM)") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        OutlinedTextField(
-            value = periodCount,
-            onValueChange = { periodCount = it },
-            label = { Text("عدد الحصص") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth(),
+        ShiftFields(
+            count = periodCount, onCount = { periodCount = it },
+            length = periodLength, onLength = { periodLength = it },
+            gap = gap, onGap = { gap = it },
         )
-        OutlinedTextField(
-            value = periodLength,
-            onValueChange = { periodLength = it },
-            label = { Text("طول الحصة بالدقائق") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+
+        Row(
             modifier = Modifier.fillMaxWidth(),
-        )
-        OutlinedTextField(
-            value = gap,
-            onValueChange = { gap = it },
-            label = { Text("الفاصل بين الحصص بالدقائق") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth(),
-        )
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text("يوجد وردية مسائية", style = MaterialTheme.typography.titleMedium)
+            Switch(checked = hasEvening, onCheckedChange = { hasEvening = it })
+        }
+
+        if (hasEvening) {
+            Text("الوردية المسائية", style = MaterialTheme.typography.titleMedium)
+            OutlinedTextField(
+                value = eveningStart,
+                onValueChange = { eveningStart = it },
+                label = { Text("بداية الدوام المسائي (HH:MM)") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            ShiftFields(
+                count = eveningCount, onCount = { eveningCount = it },
+                length = eveningLength, onLength = { eveningLength = it },
+                gap = eveningGap, onGap = { eveningGap = it },
+            )
+        }
 
         errors.forEach { message ->
             Text(message, color = MaterialTheme.colorScheme.error)
@@ -130,26 +149,41 @@ fun SetupScreen(repository: SetupRepository, onSaved: () -> Unit) {
         Button(
             enabled = !saving,
             onClick = {
-                val start = parseClockMinutes(firstStart)
-                if (start == null) {
-                    errors = listOf("بداية الدوام يجب أن تكون بصيغة HH:MM")
+                val shifts = mutableListOf<ShiftSetup>()
+                val morningStart = parseClockMinutes(firstStart)
+                if (morningStart == null) {
+                    errors = listOf("بداية الدوام الصباحي يجب أن تكون بصيغة HH:MM")
                     return@Button
+                }
+                shifts += ShiftSetup(
+                    id = "morning",
+                    kind = ShiftKind.MORNING,
+                    firstStartMin = morningStart,
+                    periodCount = periodCount.toIntOrNull() ?: -1,
+                    periodLengthMin = periodLength.toIntOrNull() ?: -1,
+                    gapMin = gap.toIntOrNull() ?: -1,
+                )
+                if (hasEvening) {
+                    val eveningStartMin = parseClockMinutes(eveningStart)
+                    if (eveningStartMin == null) {
+                        errors = listOf("بداية الدوام المسائي يجب أن تكون بصيغة HH:MM")
+                        return@Button
+                    }
+                    shifts += ShiftSetup(
+                        id = "evening",
+                        kind = ShiftKind.EVENING,
+                        firstStartMin = eveningStartMin,
+                        periodCount = eveningCount.toIntOrNull() ?: -1,
+                        periodLengthMin = eveningLength.toIntOrNull() ?: -1,
+                        gapMin = eveningGap.toIntOrNull() ?: -1,
+                    )
                 }
                 val input = SchoolSetupInput(
                     schoolName = schoolName,
                     academicYearLabel = yearLabel,
                     principalName = principal.ifBlank { null },
                     activeDays = activeDays.toIntOrNull() ?: -1,
-                    shifts = listOf(
-                        ShiftSetup(
-                            id = "morning",
-                            kind = ShiftKind.MORNING,
-                            firstStartMin = start,
-                            periodCount = periodCount.toIntOrNull() ?: -1,
-                            periodLengthMin = periodLength.toIntOrNull() ?: -1,
-                            gapMin = gap.toIntOrNull() ?: -1,
-                        ),
-                    ),
+                    shifts = shifts,
                 )
                 saving = true
                 scope.launch {
@@ -170,4 +204,39 @@ fun SetupScreen(repository: SetupRepository, onSaved: () -> Unit) {
             Text("حفظ الإعداد")
         }
     }
+}
+
+@Composable
+private fun ShiftFields(
+    count: String,
+    onCount: (String) -> Unit,
+    length: String,
+    onLength: (String) -> Unit,
+    gap: String,
+    onGap: (String) -> Unit,
+) {
+    OutlinedTextField(
+        value = count,
+        onValueChange = onCount,
+        label = { Text("عدد الحصص") },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        modifier = Modifier.fillMaxWidth(),
+    )
+    OutlinedTextField(
+        value = length,
+        onValueChange = onLength,
+        label = { Text("طول الحصة بالدقائق") },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        modifier = Modifier.fillMaxWidth(),
+    )
+    OutlinedTextField(
+        value = gap,
+        onValueChange = onGap,
+        label = { Text("الفاصل بين الحصص بالدقائق") },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
